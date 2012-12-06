@@ -1,0 +1,16 @@
+Release 2.0
+
+* Added: MultiRequest_Handler follow location on 301 and 302 response codes
+* Added: MultiRequest_Callbacks - universal class for defining callbacks
+* Added: MultiRequest_Defaults - defining Requests defaults
+* Added: MultiRequest_Session - emulation requests session with common cookies
+* Added: MultiRequest_Request auto-detection of client encoding with request conversion
+* Added: MultiRequest_Request custom client encoding support
+* Added: MutliRequest_Session auto REFERER
+* Added: MultiRequest_Session - make requests in common COOKIES session
+
+Release 1.0
+
+* Added: Handle requests by multi Curl queue
+* Added: Debug callbacks
+* Added: Example
