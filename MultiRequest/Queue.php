@@ -1,8 +1,8 @@
 <?php
 
 /**
- * @see http://code.google.com/p/multirequest
- * @author Barbushin Sergey http://www.linkedin.com/in/barbushin
+ * @see https://github.com/barbushin/multirequest
+ * @author Barbushin Sergey http://linkedin.com/in/barbushin
  *
  */
 class MultiRequest_Queue {
