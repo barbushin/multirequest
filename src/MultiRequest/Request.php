@@ -1,14 +1,16 @@
 <?php
+namespace MultiRequest;
+
 
 /**
  * @see https://github.com/barbushin/multirequest
  * @author Barbushin Sergey http://linkedin.com/in/barbushin
  *
  */
-class MultiRequest_Request {
+class Request {
 
 	/**
-	 * @var MultiRequest_Callbacks
+	 * @var Callbacks
 	 */
 	protected $callbacks;
 
@@ -43,7 +45,7 @@ class MultiRequest_Request {
 	protected static $clientsEncodings;
 
 	public function __construct($url) {
-		$this->callbacks = new MultiRequest_Callbacks();
+		$this->callbacks = new Callbacks();
 		$this->url = $url;
 		$this->setUrl($url);
 	}
@@ -198,7 +200,7 @@ class MultiRequest_Request {
 		}
 	}
 
-	public function notifyIsComplete(MultiRequest_Handler $handler) {
+	public function notifyIsComplete(Handler $handler) {
 		$this->callbacks->onComplete($this, $handler);
 
 		$failException = $this->getFailException();
@@ -225,23 +227,23 @@ class MultiRequest_Request {
 		return $this;
 	}
 
-	public function notifyIsSuccess(MultiRequest_Handler $handler) {
+	public function notifyIsSuccess(Handler $handler) {
 		$this->callbacks->onSuccess($this, $handler);
 	}
 
-	public function notifyIsFailed(MultiRequest_Exception $exception, MultiRequest_Handler $handler) {
+	public function notifyIsFailed(Exception $exception, Handler $handler) {
 		$this->callbacks->onFailed($this, $exception, $handler);
 	}
 
 	public function getFailException() {
 		if($this->error) {
-			return new MultiRequest_FailedResponse('Response failed with error: ' . $this->error);
+			return new FailedResponse('Response failed with error: ' . $this->error);
 		}
 		else {
 			$responseCode = $this->getCode();
 			$successCodes = array(200, 204);
 			if(!in_array($responseCode, $successCodes)) {
-				return new MultiRequest_FailedResponse('Response failed with code "' . $responseCode . '"');
+				return new FailedResponse('Response failed with code "' . $responseCode . '"');
 			}
 		}
 	}
@@ -303,15 +305,6 @@ class MultiRequest_Request {
 	}
 }
 
-class MultiRequest_Exception extends Exception {
 
-}
 
-class MultiRequest_FailedConnection extends MultiRequest_Exception {
-
-}
-
-class MultiRequest_FailedResponse extends MultiRequest_Exception {
-
-}
 
