@@ -1,23 +1,26 @@
 <?php
-
 require_once ('config.php');
+
+
+use \MultiRequest\Request;
+use \MultiRequest\Handler;
 
 /***************************************************************
   DEBUG METHODS
  **************************************************************/
 
 function debug($message) {
-	echo $message . '<br />';
+	echo $message . '<br />' . "\n";
 	flush();
 }
 
-function debugRequestComplete(MultiRequest_Request $request, MultiRequest_Handler $handler) {
+function debugRequestComplete(Request $request, Handler $handler) {
 	debug('Request complete: ' . $request->getUrl() . ' Code: ' . $request->getCode() . ' Time: ' . $request->getTime());
 	debug('Requests in waiting queue: ' . $handler->getRequestsInQueueCount());
 	debug('Active requests: ' . $handler->getActiveRequestsCount());
 }
 
-function saveCompleteRequestToFile(MultiRequest_Request $request, MultiRequest_Handler $handler) {
+function saveCompleteRequestToFile(Request $request, Handler $handler) {
 	$filename = preg_replace('/[^\w\.]/', '', $request->getUrl());
 	file_put_contents(DOWNLOADS_DIR . DIRECTORY_SEPARATOR . $filename, $request->getContent());
 }
@@ -25,21 +28,22 @@ function saveCompleteRequestToFile(MultiRequest_Request $request, MultiRequest_H
 function prepareDownloadsDir() {
 	$dirPath = DOWNLOADS_DIR;
 	chmod($dirPath, 0777);
-	$dirIterator = new RecursiveDirectoryIterator($dirPath);
-	$recursiveIterator = new RecursiveIteratorIterator($dirIterator);
+	$dirIterator = new \RecursiveDirectoryIterator($dirPath);
+	$recursiveIterator = new \RecursiveIteratorIterator($dirIterator);
 	foreach($recursiveIterator as $path) {
 		if($path->isFile() && strpos($path->getFilename(), '.')) {
 			unlink($path->getPathname());
 		}
 	}
 }
-prepareDownloadsDir(DOWNLOADS_DIR);
+//prepareDownloadsDir(DOWNLOADS_DIR);
 
 /***************************************************************
   MULTIREQUEST INIT
  **************************************************************/
 
-$mrHandler = new MultiRequest_Handler();
+
+$mrHandler = new Handler();
 $mrHandler->setConnectionsLimit(CONNECTIONS_LIMIT);
 $mrHandler->onRequestComplete('debugRequestComplete');
 $mrHandler->onRequestComplete('saveCompleteRequestToFile');
@@ -60,7 +64,7 @@ $mrHandler->requestsDefaults()->addCurlOptions($options);
 
 $urls = array('http://forums.somethingawful.com/', 'http://asdlksda.sas', 'http://www.somethingpositive.net/', 'http://www.somethingawful.com/', 'http://awesome-hd.net/', 'http://www.istartedsomething.com/', 'http://www.somewhere.fr/', 'http://forums.tkasomething.com/', 'http://www.somewhereinblog.net/', 'http://www.killsometime.com/', 'http://v.sometrics.com/', 'http://www.fearsome-oekaki.com/', 'http://www.dosomething.org/', 'http://www.avonandsomerset.police.uk/');
 foreach($urls as $url) {
-	$request = new MultiRequest_Request($url);
+	$request = new Request($url);
 	$mrHandler->pushRequestToQueue($request);
 }
 
