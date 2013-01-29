@@ -188,9 +188,20 @@ class Request {
 		$this->error = curl_error($curlHandle);
 		$responseData = curl_multi_getcontent($curlHandle);
 
-		$this->responseHeaders = substr($responseData, 0, curl_getinfo($curlHandle, CURLINFO_HEADER_SIZE));
-		$this->responseContent = substr($responseData, curl_getinfo($curlHandle, CURLINFO_HEADER_SIZE));
-		$clientEncoding = $this->detectClientCharset($this->getResponseHeaders());
+        // fix bug? https://bugs.php.net/bug.php?id=63894
+        preg_match_all('/.*Content-Length: (\d+).*/mi', $responseData, $matches);
+
+        $contentLength = array_pop($matches[1]);
+
+        if (is_null($contentLength)) {
+            $this->responseHeaders = substr($responseData, 0, curl_getinfo($curlHandle, CURLINFO_HEADER_SIZE));
+            $this->responseContent = substr($responseData, curl_getinfo($curlHandle, CURLINFO_HEADER_SIZE));
+        } else {
+            $this->responseHeaders = substr($responseData, 0, mb_strlen($responseData) - $contentLength);
+            $this->responseContent = substr($responseData, mb_strlen($responseData) - $contentLength);
+        }
+
+        $clientEncoding = $this->detectClientCharset($this->getResponseHeaders());
 		if($clientEncoding && $clientEncoding != $this->serverEncoding) {
 			self::$clientsEncodings[$this->getDomain()] = $clientEncoding;
 			$this->responseContent = mb_convert_encoding($this->responseContent, $this->serverEncoding, $clientEncoding);
