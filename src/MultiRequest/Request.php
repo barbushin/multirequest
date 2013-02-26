@@ -193,12 +193,16 @@ class Request {
 
         $contentLength = array_pop($matches[1]);
 
-        if (is_null($contentLength)) {
-            $this->responseHeaders = substr($responseData, 0, curl_getinfo($curlHandle, CURLINFO_HEADER_SIZE));
-            $this->responseContent = substr($responseData, curl_getinfo($curlHandle, CURLINFO_HEADER_SIZE));
+        // HTTP/1.0 200 Connection established\r\nProxy-agent: Kerio WinRoute Firewall/6.2.2 build 1746\r\n\r\nHTTP
+
+        $responseData = preg_replace("/(HTTP.*? connection established\\r\\n\\r\\n)/ims", "", $responseData);
+
+        if (is_null($contentLength) || $contentLength == 0) {
+            $this->responseHeaders = mb_substr($responseData, 0, curl_getinfo($curlHandle, CURLINFO_HEADER_SIZE));
+            $this->responseContent = mb_substr($responseData, curl_getinfo($curlHandle, CURLINFO_HEADER_SIZE));
         } else {
-            $this->responseHeaders = substr($responseData, 0, mb_strlen($responseData) - $contentLength);
-            $this->responseContent = substr($responseData, mb_strlen($responseData) - $contentLength);
+            $this->responseHeaders = mb_substr($responseData, 0, mb_strlen($responseData) - $contentLength);
+            $this->responseContent = mb_substr($responseData, mb_strlen($responseData) - $contentLength);
         }
 
         $clientEncoding = $this->detectClientCharset($this->getResponseHeaders());
