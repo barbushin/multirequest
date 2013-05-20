@@ -73,10 +73,14 @@ class Session {
 	public function stop() {
 		$this->enableAutoStart = false;
 	}
-
+	
+ 	public function setRequestingDelay($milliseconds) {
+        	$this->requestingDelay = $milliseconds;
+    	}
+    	
 	public function request(Request $request) {
 		if($this->requestsDelay) {
-			sleep($this->requestsDelay);
+			usleep($this->requestsDelay);
 		}
 		$request->onComplete(array($this, 'notifyRequestIsComplete'));
 		
