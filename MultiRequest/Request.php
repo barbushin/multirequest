@@ -131,7 +131,12 @@ class MultiRequest_Request {
 
 			$clientEncoding = isset(self::$clientsEncodings[$this->getDomain()]) ? self::$clientsEncodings[$this->getDomain()] : $this->defaultClientEncoding;
 			if($clientEncoding != $this->serverEncoding) {
-				array_walk_recursive($postData, create_function('&$value', '$value = mb_convert_encoding($value, "' . $clientEncoding . '", "' . $this->serverEncoding . '");'));
+				if(is_array($postData)) {
+					array_walk_recursive($postData, create_function('&$value', '$value = mb_convert_encoding($value, "' . $clientEncoding . '", "' . $this->serverEncoding . '");'));
+				}
+				else {
+					$postData = mb_convert_encoding($postData, $clientEncoding, $this->serverEncoding);
+				}
 			}
 			$curlOptions[CURLOPT_POST] = true;
 			$curlOptions[CURLOPT_POSTFIELDS] = $postData;
