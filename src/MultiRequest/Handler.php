@@ -1,24 +1,26 @@
 <?php
+namespace MultiRequest;
+
 
 /**
  * @see https://github.com/barbushin/multirequest
  * @author Barbushin Sergey http://linkedin.com/in/barbushin
  *
  */
-class MultiRequest_Handler {
+class Handler {
 
 	/**
-	 * @var MultiRequest_RequestsDefaults
+	 * @var RequestsDefaults
 	 */
 	protected $requestsDefaults;
 
 	/**
-	 * @var MultiRequest_Callbacks
+	 * @var Callbacks
 	 */
 	protected $callbacks;
 
 	/**
-	 * @var MultiRequest_Queue
+	 * @var Queue
 	 */
 	protected $queue;
 
@@ -34,9 +36,9 @@ class MultiRequest_Handler {
 		if(!extension_loaded('curl')) {
 			throw new Exception('CURL extension require to be installed and enabled in PHP');
 		}
-		$this->queue = new MultiRequest_Queue();
-		$this->requestsDefaults = new MultiRequest_Defaults();
-		$this->callbacks = new MultiRequest_Callbacks();
+		$this->queue = new Queue();
+		$this->requestsDefaults = new Defaults();
+		$this->callbacks = new Callbacks();
 	}
 
 	public function getQueue() {
@@ -52,13 +54,13 @@ class MultiRequest_Handler {
 		return $this;
 	}
 
-	protected function notifyRequestComplete(MultiRequest_Request $request) {
+	protected function notifyRequestComplete(Request $request) {
 		$request->notifyIsComplete($this);
 		$this->callbacks->onRequestComplete($request, $this);
 	}
 
 	/**
-	 * @return MultiRequest_Request
+	 * @return Request
 	 */
 	public function requestsDefaults() {
 		return $this->requestsDefaults;
@@ -93,11 +95,11 @@ class MultiRequest_Handler {
 		$this->start();
 	}
 
-	public function pushRequestToQueue(MultiRequest_Request $request) {
+	public function pushRequestToQueue(Request $request) {
 		$this->queue->push($request);
 	}
 
-	protected function sendRequestToMultiCurl($mcurlHandle, MultiRequest_Request $request) {
+	protected function sendRequestToMultiCurl($mcurlHandle, Request $request) {
 		$this->requestsDefaults->applyToRequest($request);
 		curl_multi_add_handle($mcurlHandle, $request->getCurlHandle(true));
 	}
@@ -136,7 +138,7 @@ class MultiRequest_Handler {
 				// check complete requests
 				curl_multi_select($mcurlHandle, $this->requestingDelay);
 				while($completeCurlInfo = curl_multi_info_read($mcurlHandle)) {
-					$completeRequestId = MultiRequest_Request::getRequestIdByCurlHandle($completeCurlInfo['handle']);
+					$completeRequestId = Request::getRequestIdByCurlHandle($completeCurlInfo['handle']);
 					$completeRequest = $this->activeRequests[$completeRequestId];
 					unset($this->activeRequests[$completeRequestId]);
 					curl_multi_remove_handle($mcurlHandle, $completeRequest->getCurlHandle());

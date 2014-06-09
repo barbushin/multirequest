@@ -1,15 +1,18 @@
 <?php
+namespace MultiRequest;
+
+
 
 /**
  * @see https://github.com/barbushin/multirequest
  * @author Barbushin Sergey http://linkedin.com/in/barbushin
  *
  */
-class MultiRequest_Queue {
+class Queue {
 	
 	protected $requests = array();
 
-	public function push(MultiRequest_Request $request) {
+	public function push(Request $request) {
 		$this->requests[] = $request;
 	}
 

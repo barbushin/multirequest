@@ -1,14 +1,16 @@
 <?php
+namespace MultiRequest;
+
 
 /**
  * @see https://github.com/barbushin/multirequest
  * @author Barbushin Sergey http://linkedin.com/in/barbushin
  *
  */
-class MultiRequest_Request {
+class Request {
 
 	/**
-	 * @var MultiRequest_Callbacks
+	 * @var Callbacks
 	 */
 	protected $callbacks;
 
@@ -43,7 +45,7 @@ class MultiRequest_Request {
 	protected static $clientsEncodings;
 
 	public function __construct($url) {
-		$this->callbacks = new MultiRequest_Callbacks();
+		$this->callbacks = new Callbacks();
 		$this->url = $url;
 		$this->setUrl($url);
 	}
@@ -191,9 +193,24 @@ class MultiRequest_Request {
 		$this->error = curl_error($curlHandle);
 		$responseData = curl_multi_getcontent($curlHandle);
 
-		$this->responseHeaders = substr($responseData, 0, curl_getinfo($curlHandle, CURLINFO_HEADER_SIZE));
-		$this->responseContent = substr($responseData, curl_getinfo($curlHandle, CURLINFO_HEADER_SIZE));
-		$clientEncoding = $this->detectClientCharset($this->getResponseHeaders());
+        // fix bug? https://bugs.php.net/bug.php?id=63894
+        preg_match_all('/.*Content-Length: (\d+).*/mi', $responseData, $matches);
+
+        $contentLength = array_pop($matches[1]);
+
+        // HTTP/1.0 200 Connection established\r\nProxy-agent: Kerio WinRoute Firewall/6.2.2 build 1746\r\n\r\nHTTP
+
+        $responseData = preg_replace("/(HTTP.*? connection established\\r\\n\\r\\n)/ims", "", $responseData);
+
+        if (is_null($contentLength) || $contentLength == 0) {
+            $this->responseHeaders = mb_substr($responseData, 0, curl_getinfo($curlHandle, CURLINFO_HEADER_SIZE));
+            $this->responseContent = mb_substr($responseData, curl_getinfo($curlHandle, CURLINFO_HEADER_SIZE));
+        } else {
+            $this->responseHeaders = mb_substr($responseData, 0, mb_strlen($responseData) - $contentLength);
+            $this->responseContent = mb_substr($responseData, mb_strlen($responseData) - $contentLength);
+        }
+
+        $clientEncoding = $this->detectClientCharset($this->getResponseHeaders());
 		if($clientEncoding && $clientEncoding != $this->serverEncoding) {
 			self::$clientsEncodings[$this->getDomain()] = $clientEncoding;
 			$this->responseContent = mb_convert_encoding($this->responseContent, $this->serverEncoding, $clientEncoding);
@@ -203,7 +220,7 @@ class MultiRequest_Request {
 		}
 	}
 
-	public function notifyIsComplete(MultiRequest_Handler $handler) {
+	public function notifyIsComplete(Handler $handler) {
 		$this->callbacks->onComplete($this, $handler);
 
 		$failException = $this->getFailException();
@@ -230,23 +247,23 @@ class MultiRequest_Request {
 		return $this;
 	}
 
-	public function notifyIsSuccess(MultiRequest_Handler $handler) {
+	public function notifyIsSuccess(Handler $handler) {
 		$this->callbacks->onSuccess($this, $handler);
 	}
 
-	public function notifyIsFailed(MultiRequest_Exception $exception, MultiRequest_Handler $handler) {
+	public function notifyIsFailed(Exception $exception, Handler $handler) {
 		$this->callbacks->onFailed($this, $exception, $handler);
 	}
 
 	public function getFailException() {
 		if($this->error) {
-			return new MultiRequest_FailedResponse('Response failed with error: ' . $this->error);
+			return new FailedResponse('Response failed with error: ' . $this->error);
 		}
 		else {
 			$responseCode = $this->getCode();
 			$successCodes = array(200, 204);
 			if(!in_array($responseCode, $successCodes)) {
-				return new MultiRequest_FailedResponse('Response failed with code "' . $responseCode . '"');
+				return new FailedResponse('Response failed with code "' . $responseCode . '"');
 			}
 		}
 	}
@@ -308,15 +325,6 @@ class MultiRequest_Request {
 	}
 }
 
-class MultiRequest_Exception extends Exception {
 
-}
 
-class MultiRequest_FailedConnection extends MultiRequest_Exception {
-
-}
-
-class MultiRequest_FailedResponse extends MultiRequest_Exception {
-
-}
 

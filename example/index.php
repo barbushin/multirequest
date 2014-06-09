@@ -1,72 +1,132 @@
 <?php
 
-require_once ('config.php');
+ini_set('display_errors', 'on');
+error_reporting(E_ALL);
+set_time_limit(0);
+
+require_once dirname(dirname(__FILE__)) . DIRECTORY_SEPARATOR . 'vendor' .DIRECTORY_SEPARATOR . 'autoload.php';
+
+use \MultiRequest\Request;
+use \MultiRequest\Handler;
 
 /***************************************************************
   DEBUG METHODS
  **************************************************************/
 
 function debug($message) {
-	echo $message . '<br />';
+	echo $message . '<br />' . "\n";
 	flush();
 }
 
-function debugRequestComplete(MultiRequest_Request $request, MultiRequest_Handler $handler) {
+function getDownloadsDir() {
+    return dirname(__FILE__) . DIRECTORY_SEPARATOR . 'downloads';
+}
+
+function debugRequestComplete(Request $request, Handler $handler) {
 	debug('Request complete: ' . $request->getUrl() . ' Code: ' . $request->getCode() . ' Time: ' . $request->getTime());
 	debug('Requests in waiting queue: ' . $handler->getRequestsInQueueCount());
 	debug('Active requests: ' . $handler->getActiveRequestsCount());
 }
 
-function saveCompleteRequestToFile(MultiRequest_Request $request, MultiRequest_Handler $handler) {
+function saveCompleteRequestToFile(Request $request, Handler $handler) {
+    var_dump($request->getRequestHeaders());
+
+    var_dump($request->getResponseHeaders());
 	$filename = preg_replace('/[^\w\.]/', '', $request->getUrl());
-	file_put_contents(DOWNLOADS_DIR . DIRECTORY_SEPARATOR . $filename, $request->getContent());
+
+	file_put_contents(getDownloadsDir() . DIRECTORY_SEPARATOR . $filename, $request->getContent());
 }
 
-function prepareDownloadsDir() {
-	$dirPath = DOWNLOADS_DIR;
+function prepareDownloadsDir($dirPath) {
 	chmod($dirPath, 0777);
-	$dirIterator = new RecursiveDirectoryIterator($dirPath);
-	$recursiveIterator = new RecursiveIteratorIterator($dirIterator);
+
+	$dirIterator = new \RecursiveDirectoryIterator($dirPath);
+	$recursiveIterator = new \RecursiveIteratorIterator($dirIterator);
+
 	foreach($recursiveIterator as $path) {
 		if($path->isFile() && strpos($path->getFilename(), '.')) {
 			unlink($path->getPathname());
 		}
 	}
 }
-prepareDownloadsDir(DOWNLOADS_DIR);
+
+prepareDownloadsDir(getDownloadsDir());
 
 /***************************************************************
   MULTIREQUEST INIT
  **************************************************************/
+$urls = array(
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+    'http://www.yandex.ru/',
+);
 
-$mrHandler = new MultiRequest_Handler();
-$mrHandler->setConnectionsLimit(CONNECTIONS_LIMIT);
+$headers = array(
+    'Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5',
+    'Cache-Control: no-cache',
+    'Connection: Keep-Alive',
+    'Keep-Alive: 300',
+    'Accept-Charset: UTF-8,Windows-1251,ISO-8859-1;q=0.7,*;q=0.7',
+    'Accept-Language: ru,en-us,en;q=0.5',
+    'Pragma:',
+);
+
+$curlOptions = array(
+    CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.12) Gecko/20101026 Firefox/3.6.12',
+    CURLOPT_PROXY => '95.79.55.210:3128',
+    CURLOPT_CONNECTTIMEOUT_MS => 5000
+);
+
+$mrHandler = new Handler();
+
+$mrHandler->setConnectionsLimit(1000);
+
 $mrHandler->onRequestComplete('debugRequestComplete');
 $mrHandler->onRequestComplete('saveCompleteRequestToFile');
 
-$headers = array();
-$headers[] = 'Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5';
-$headers[] = 'Cache-Control: no-cache';
-$headers[] = 'Connection: Keep-Alive';
-$headers[] = 'Keep-Alive: 300';
-$headers[] = 'Accept-Charset: UTF-8,Windows-1251,ISO-8859-1;q=0.7,*;q=0.7';
-$headers[] = 'Accept-Language: ru,en-us,en;q=0.5';
-$headers[] = 'Pragma:';
 $mrHandler->requestsDefaults()->addHeaders($headers);
 
-$options = array();
-$options[CURLOPT_USERAGENT] = 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.12) Gecko/20101026 Firefox/3.6.12';
-$mrHandler->requestsDefaults()->addCurlOptions($options);
+$mrHandler->requestsDefaults()->addCurlOptions($curlOptions);
 
-$urls = array('http://forums.somethingawful.com/', 'http://asdlksda.sas', 'http://www.somethingpositive.net/', 'http://www.somethingawful.com/', 'http://awesome-hd.net/', 'http://www.istartedsomething.com/', 'http://www.somewhere.fr/', 'http://forums.tkasomething.com/', 'http://www.somewhereinblog.net/', 'http://www.killsometime.com/', 'http://v.sometrics.com/', 'http://www.fearsome-oekaki.com/', 'http://www.dosomething.org/', 'http://www.avonandsomerset.police.uk/');
+$Session = new \MultiRequest\Session($mrHandler, '/tmp');
+$Session->start();
+
 foreach($urls as $url) {
-	$request = new MultiRequest_Request($url);
-	$mrHandler->pushRequestToQueue($request);
+	$request = new Request($url);
+    $request->addCurlOptions($curlOptions);
+
+    $Session->request($request);
+	//$mrHandler->pushRequestToQueue($request);
 }
 
 $startTime = time();
 
-set_time_limit(300);
 $mrHandler->start();
 
 debug('Total time: ' . (time() - $startTime));
+
+
+
+
+
