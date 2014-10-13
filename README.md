@@ -9,7 +9,7 @@ PHP library for easy and flexible multithread requests handling by CURL
 
 	{
 		"require": {
-			"php-console/php-console": "3.*"
+			"multirequest/multirequest": "1.*",
 		}
 	}
 
