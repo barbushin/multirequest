@@ -9,36 +9,29 @@ namespace MultiRequest;
  */
 class Handler {
 
-	/**
-	 * @var RequestsDefaults
-	 */
+	/** @var Defaults */
 	protected $requestsDefaults;
-
-	/**
-	 * @var Callbacks
-	 */
+	/** @var Callbacks */
 	protected $callbacks;
-
-	/**
-	 * @var Queue
-	 */
+	/** @var Queue */
 	protected $queue;
+    /** @var Request[] */
+	protected $activeRequests = array();
 
 	protected $connectionsLimit = 60;
-	protected $totalTytesTransfered;
+	protected $totalBytesTransferred;
 	protected $isActive;
 	protected $isStarted;
 	protected $isStopped;
-	protected $activeRequests = array();
 	protected $requestingDelay = 0.01;
 
-	public function __construct() {
+	public function __construct(Queue $queue = null, Defaults $defaults = null, Callbacks $callbacks = null) {
 		if(!extension_loaded('curl')) {
-			throw new Exception('CURL extension require to be installed and enabled in PHP');
+			throw new Exception('CURL extension must be installed and enabled');
 		}
-		$this->queue = new Queue();
-		$this->requestsDefaults = new Defaults();
-		$this->callbacks = new Callbacks();
+		$this->queue = $queue ? : new Queue();
+		$this->requestsDefaults = $defaults ? : new Defaults();
+		$this->callbacks = $callbacks ? : new Callbacks();
 	}
 
 	public function getQueue() {
@@ -56,7 +49,8 @@ class Handler {
 
 	protected function notifyRequestComplete(Request $request) {
 		$request->notifyIsComplete($this);
-		$this->callbacks->onRequestComplete($request, $this);
+        /** @noinspection PhpUndefinedMethodInspection */
+        $this->callbacks->onRequestComplete($request, $this);
 	}
 
 	/**
@@ -110,11 +104,9 @@ class Handler {
 		}
 		$this->isActive = true;
 		$this->isStarted = true;
+        $curlHandle = curl_multi_init();
 
 		try {
-
-			$this->mcurlHandle = $mcurlHandle = curl_multi_init();
-
 			do {
 
 				// send requests from queue to CURL
@@ -122,7 +114,7 @@ class Handler {
 					for($i = $this->connectionsLimit - count($this->activeRequests); $i > 0; $i--) {
 						$request = $this->queue->pop();
 						if($request) {
-							$this->sendRequestToMultiCurl($mcurlHandle, $request);
+							$this->sendRequestToMultiCurl($curlHandle, $request);
 							$this->activeRequests[$request->getId()] = $request;
 						}
 						else {
@@ -131,17 +123,17 @@ class Handler {
 					}
 				}
 
-				while(CURLM_CALL_MULTI_PERFORM === curl_multi_exec($mcurlHandle, $activeThreads)) {
+				while(CURLM_CALL_MULTI_PERFORM === curl_multi_exec($curlHandle, $activeThreads)) {
 					;
 				}
 
 				// check complete requests
-				curl_multi_select($mcurlHandle, $this->requestingDelay);
-				while($completeCurlInfo = curl_multi_info_read($mcurlHandle)) {
+				curl_multi_select($curlHandle, $this->requestingDelay);
+				while($completeCurlInfo = curl_multi_info_read($curlHandle)) {
 					$completeRequestId = Request::getRequestIdByCurlHandle($completeCurlInfo['handle']);
 					$completeRequest = $this->activeRequests[$completeRequestId];
 					unset($this->activeRequests[$completeRequestId]);
-					curl_multi_remove_handle($mcurlHandle, $completeRequest->getCurlHandle());
+					curl_multi_remove_handle($curlHandle, $completeRequest->getCurlHandle());
 					$completeRequest->handleCurlResult();
 
 					// check if response code is 301 or 302 and follow location
@@ -154,7 +146,7 @@ class Handler {
 							$completeRequest->_permanentlyMoved = empty($completeRequest->_permanentlyMoved) ? 1 : $completeRequest->_permanentlyMoved + 1;
 							$responseHeaders = $completeRequest->getResponseHeaders(true);
 							if($completeRequest->_permanentlyMoved < 5 && !empty($responseHeaders['Location'])) {
-								// figure out whether we're dealign with an absolute or relative redirect (thanks to kmontag https://github.com/kmontag for this bugfix)
+								// figure out whether we're dealing with an absolute or relative redirect (thanks to kmontag https://github.com/kmontag for this bugfix)
 								$redirectedUrl = (parse_url($responseHeaders['Location'], PHP_URL_SCHEME) === null ? $completeRequest->getBaseUrl() : '') . $responseHeaders['Location'];
 								$completeRequest->setUrl($redirectedUrl);
 								$completeRequest->reInitCurlHandle();
@@ -175,14 +167,15 @@ class Handler {
 
 		$this->isActive = false;
 
-		if($mcurlHandle && is_resource($mcurlHandle)) {
-			curl_multi_close($mcurlHandle);
+		if($curlHandle && is_resource($curlHandle)) {
+			curl_multi_close($curlHandle);
 		}
 
 		if(!empty($exception)) {
 			throw $exception;
 		}
 
-		$this->callbacks->onComplete($this);
+        /** @noinspection PhpUndefinedMethodInspection */
+        $this->callbacks->onComplete($this);
 	}
 }

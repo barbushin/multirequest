@@ -40,17 +40,22 @@ class Request {
 		CURLOPT_SSL_VERIFYHOST => false,
 		CURLOPT_FORBID_REUSE => true,
 		CURLOPT_VERBOSE => true,
-		CURLOPT_MAXCONNECTS => 1);
+     );
 
 	protected static $clientsEncodings;
 
-	public function __construct($url) {
+	public function __construct($url = null, array $postData = array()) {
+		if($url) {
+			$this->setUrl($url);
+		}
+		if($postData) {
+			$this->setPostData($postData);
+		}
 		$this->callbacks = new Callbacks();
-		$this->url = $url;
-		$this->setUrl($url);
 	}
 
 	public function setUrl($url) {
+		$this->url = $url;
 		$this->setCurlOption(CURLOPT_URL, $url);
 	}
 
@@ -149,7 +154,7 @@ class Request {
 		return $curlHandle;
 	}
 
-	protected function detectClientCharset($headers) {
+	protected function detectClientCharset() {
 		if(isset($this->curlInfo['content_type']) && preg_match('/charset\s*=\s*([\w\-\d]+)/i', $this->curlInfo['content_type'], $m)) {
 			return strtolower($m[1]);
 		}
@@ -199,8 +204,9 @@ class Request {
         $contentLength = array_pop($matches[1]);
 
         // HTTP/1.0 200 Connection established\r\nProxy-agent: Kerio WinRoute Firewall/6.2.2 build 1746\r\n\r\nHTTP
-
-        $responseData = preg_replace("/(HTTP.*? connection established\\r\\n\\r\\n)/ims", "", $responseData);
+        if(stripos($responseData, "HTTP/1.0 200 Connection established\r\n\r\n") !== false) {
+            $responseData = str_ireplace("HTTP/1.0 200 Connection established\r\n\r\n", '', $responseData);
+        }
 
         if (is_null($contentLength) || $contentLength == 0) {
             $this->responseHeaders = mb_substr($responseData, 0, curl_getinfo($curlHandle, CURLINFO_HEADER_SIZE));
@@ -324,7 +330,3 @@ class Request {
 		return $this->responseContent;
 	}
 }
-
-
-
-
