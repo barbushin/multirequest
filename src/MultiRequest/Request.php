@@ -28,8 +28,7 @@ class Request {
 	protected $responseContent;
 	protected $error;
 	protected $curlOptions = array(
-		CURLOPT_TIMEOUT => 3600,
-		CURLOPT_CONNECTTIMEOUT => 200,
+		CURLOPT_CONNECTTIMEOUT => 5,
 		CURLOPT_FAILONERROR => true,
 		CURLOPT_FRESH_CONNECT => true,
 		CURLOPT_HEADER => true,
