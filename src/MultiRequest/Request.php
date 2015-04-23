@@ -125,7 +125,6 @@ class Request {
 	}
 
 	protected function resetRequestResultProperties() {
-		$this->headers = array();
 		$this->curlInfo = null;
 		$this->error = null;
 		$this->responseHeaders = null;
