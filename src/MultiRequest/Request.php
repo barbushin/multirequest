@@ -133,7 +133,7 @@ class Request {
 
 	protected function initCurlHandle() {
 		$this->resetRequestResultProperties();
-		
+
 		$curlHandle = curl_init($this->url);
 		$curlOptions = $this->curlOptions;
 		$curlOptions[CURLINFO_HEADER_OUT] = true;
@@ -216,7 +216,7 @@ class Request {
 			$responseData = str_ireplace("HTTP/1.0 200 Connection established\r\n\r\n", '', $responseData);
 		}
 
-		if (is_null($contentLength) || $contentLength == 0) {
+		if (version_compare(PHP_VERSION, '5.4.10', '>=') || is_null($contentLength) || $contentLength == 0) {
 			$this->responseHeaders = mb_substr($responseData, 0, curl_getinfo($curlHandle, CURLINFO_HEADER_SIZE));
 			$this->responseContent = mb_substr($responseData, curl_getinfo($curlHandle, CURLINFO_HEADER_SIZE));
 			
@@ -225,7 +225,7 @@ class Request {
 			$this->responseContent = mb_substr($responseData, mb_strlen($responseData) - $contentLength);
 		}
 
-		$clientEncoding = $this->detectClientCharset($this->getResponseHeaders());
+		$clientEncoding = $this->detectClientCharset();
 		if($clientEncoding && $clientEncoding != $this->serverEncoding) {
 			self::$clientsEncodings[$this->getDomain()] = $clientEncoding;
 			$this->responseContent = mb_convert_encoding($this->responseContent, $this->serverEncoding, $clientEncoding);
