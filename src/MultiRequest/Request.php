@@ -394,4 +394,9 @@ class Request
     {
         return $this->responseContent;
     }
+
+    public function setContent($content)
+    {
+        $this->responseContent = $content;
+    }
 }
