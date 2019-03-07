@@ -390,6 +390,11 @@ class Request
         return $this->parseHeaders($this->responseHeaders, $assoc);
     }
 
+    public function setResponseHeaders($strHeaders)
+    {
+        $this->responseHeaders = $strHeaders;
+    }
+
     public function getContent()
     {
         return $this->responseContent;
