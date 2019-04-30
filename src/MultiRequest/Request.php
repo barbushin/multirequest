@@ -221,8 +221,10 @@ class Request {
 			$this->responseContent = mb_substr($responseData, curl_getinfo($curlHandle, CURLINFO_HEADER_SIZE));
 			
 		} else {
-			$this->responseHeaders = mb_substr($responseData, 0, mb_strlen($responseData) - $contentLength);
-			$this->responseContent = mb_substr($responseData, mb_strlen($responseData) - $contentLength);
+			$headerSize = curl_getinfo($curlHandle, CURLINFO_HEADER_SIZE);
+
+			$this->responseHeaders = substr($responseData, 0, $headerSize);
+			$this->responseContent = substr($responseData, $headerSize);
 		}
 
 		$clientEncoding = $this->detectClientCharset($this->getResponseHeaders());
